@@ -10,6 +10,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -20,28 +21,33 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.helper.ItemTouchHelper;
+import android.util.Log;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.firebase.ui.database.FirebaseArray;
 import com.firebase.ui.database.FirebaseRecyclerOptions;
+import com.firebase.ui.database.ObservableSnapshotArray;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.database.core.SnapshotHolder;
 
 import br.edu.ifspsaocarlos.agendafirebase.R;
 import br.edu.ifspsaocarlos.agendafirebase.adapter.ContatoAdapter;
 import br.edu.ifspsaocarlos.agendafirebase.model.Contato;
 
 
-public class MainActivity extends AppCompatActivity{
-
+public class MainActivity extends AppCompatActivity {
 
     private RecyclerView recyclerView;
 
@@ -70,7 +76,6 @@ public class MainActivity extends AppCompatActivity{
         }
     }
 
-
     @Override
     protected void onNewIntent(Intent intent) {
         setIntent(intent);
@@ -81,9 +86,9 @@ public class MainActivity extends AppCompatActivity{
         if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
             String query = intent.getStringExtra(SearchManager.QUERY);
 
-            updateUI(query);
+            String upperString = query.substring(0,1).toUpperCase() + query.substring(1);
+            updateUI(upperString);
             searchView.clearFocus();
-
         }
     }
 
@@ -100,25 +105,21 @@ public class MainActivity extends AppCompatActivity{
         Toolbar toolbar = (Toolbar)findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-
         progressBar=(ProgressBar)findViewById(R.id.progressbar);
         progressBar.setVisibility(View.VISIBLE);
-
 
         recyclerView = (RecyclerView) findViewById(R.id.my_recycler_view);
         RecyclerView.LayoutManager layout = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layout);
 
-
         databaseReference = FirebaseDatabase.getInstance().getReference();
-
 
         databaseReference.addValueEventListener(new ValueEventListener() {
 
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-            progressBar.setVisibility(View.GONE);
-            if (dataSnapshot.getChildrenCount()==0)
+                progressBar.setVisibility(View.GONE);
+                if (dataSnapshot.getChildrenCount()==0)
                     empty.setVisibility(View.VISIBLE);
                 else
                     empty.setVisibility(View.GONE);
@@ -129,7 +130,6 @@ public class MainActivity extends AppCompatActivity{
 
             }
         });
-
 
         fab = (FloatingActionButton)findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -142,10 +142,6 @@ public class MainActivity extends AppCompatActivity{
 
         updateUI(null);
         setupRecyclerView();
-
-
-
-
     }
 
     @Override
@@ -157,7 +153,6 @@ public class MainActivity extends AppCompatActivity{
 
         ImageView closeButton = (ImageView)searchView.findViewById(R.id.search_close_btn);
 
-
         closeButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -168,20 +163,48 @@ public class MainActivity extends AppCompatActivity{
                 searchView.setQuery("", false);
 
                 updateUI(null);
-
             }
         });
 
-
-
         searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
-
         searchView.setIconifiedByDefault(true);
-
 
         return true;
     }
 
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        switch (item.getItemId()) {
+            case R.id.todos:
+                query = databaseReference.orderByChild("nome");
+                options = new FirebaseRecyclerOptions.Builder<Contato>().setQuery(query, Contato.class).build();
+                return true;
+            case R.id.amigos:
+                query = databaseReference.orderByChild("tipoContato").equalTo("Amigo");
+                options = new FirebaseRecyclerOptions.Builder<Contato>().setQuery(query, Contato.class).build();
+                break;
+            case R.id.familia:
+                query = databaseReference.orderByChild("tipoContato").equalTo("Familia");
+                options = new FirebaseRecyclerOptions.Builder<Contato>().setQuery(query, Contato.class).build();
+                break;
+            case R.id.trabalho:
+                query = databaseReference.orderByChild("tipoContato").equalTo("Trabalho");
+                options = new FirebaseRecyclerOptions.Builder<Contato>().setQuery(query, Contato.class).build();
+                break;
+            case R.id.outro:
+                query = databaseReference.orderByChild("tipoContato").equalTo("Outros");
+                options = new FirebaseRecyclerOptions.Builder<Contato>().setQuery(query, Contato.class).build();
+                break;
+
+        }
+
+        adapter = new ContatoAdapter(options);
+        recyclerView.setAdapter(adapter);
+        adapter.startListening();
+
+        return true;
+    }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -191,15 +214,11 @@ public class MainActivity extends AppCompatActivity{
 
             }
 
-
-
         if (requestCode == 2) {
             if (resultCode == RESULT_OK)
                 showSnackBar(getResources().getString(R.string.contato_alterado));
             if (resultCode == 3)
                 showSnackBar(getResources().getString(R.string.contato_apagado));
-
-
         }
     }
 
@@ -210,10 +229,7 @@ public class MainActivity extends AppCompatActivity{
                 .show();
     }
 
-
-
-    private void updateUI(String nomeContato)
-    {
+    private void updateUI(final String nomeContato) {
 
         if (nomeContato==null) {
              query= databaseReference.orderByChild("nome");
@@ -228,19 +244,17 @@ public class MainActivity extends AppCompatActivity{
             fab.show();
         }
         else {
+            query = databaseReference.orderByChild("nome").startAt(nomeContato).limitToFirst(1);
+            options = new FirebaseRecyclerOptions.Builder<Contato>().setQuery(query, Contato.class).build();
 
+            adapter = new ContatoAdapter(options);
 
-             //EXERCICIO: insira aqui o código para buscar somente os contatos que atendam
-            //           ao criterio de busca digitado pelo usuário na SearchView.
-
-
-
+            recyclerView.setAdapter(adapter);
+            adapter.startListening();
         }
-
      }
 
     private void setupRecyclerView() {
-
 
         adapter.setClickListener(new ContatoAdapter.ItemClickListener() {
             @Override
@@ -294,11 +308,7 @@ public class MainActivity extends AppCompatActivity{
         };
         ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleItemTouchCallback);
         itemTouchHelper.attachToRecyclerView(recyclerView);
-
-
     }
-
-
 
     protected void onStart() {
         super.onStart();
@@ -319,6 +329,4 @@ public class MainActivity extends AppCompatActivity{
         adapter.stopListening();
 
     }
-
-
 }

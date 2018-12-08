@@ -13,9 +13,6 @@ import com.firebase.ui.database.FirebaseRecyclerOptions;
 import br.edu.ifspsaocarlos.agendafirebase.model.Contato;
 import br.edu.ifspsaocarlos.agendafirebase.R;
 
-
-
-
 public class ContatoAdapter extends FirebaseRecyclerAdapter<Contato,ContatoAdapter.ContatoViewHolder> {
 
     private static ItemClickListener clickListener;
@@ -30,7 +27,6 @@ public class ContatoAdapter extends FirebaseRecyclerAdapter<Contato,ContatoAdapt
         super(options);
     }
 
-
     @Override
     public ContatoViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())
@@ -39,17 +35,10 @@ public class ContatoAdapter extends FirebaseRecyclerAdapter<Contato,ContatoAdapt
         return new ContatoViewHolder(view);
     }
 
-
-
-
     @Override
     protected void onBindViewHolder(ContatoViewHolder holder, int position, Contato model) {
         holder.nome.setText(model.getNome());
     }
-
-
-
-
 
     public void setClickListener(ItemClickListener itemClickListener) {
         clickListener = itemClickListener;

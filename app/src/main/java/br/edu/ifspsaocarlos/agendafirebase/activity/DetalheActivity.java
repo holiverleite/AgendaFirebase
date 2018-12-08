@@ -6,7 +6,11 @@ import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.Spinner;
 
 
 import com.google.firebase.database.DataSnapshot;
@@ -15,15 +19,22 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import br.edu.ifspsaocarlos.agendafirebase.model.Contato;
 import br.edu.ifspsaocarlos.agendafirebase.R;
 
 
-public class DetalheActivity extends AppCompatActivity {
+public class DetalheActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
     private Contato c;
 
     private DatabaseReference databaseReference;
     String FirebaseID;
+
+    private Spinner contactGroupTypeSpinner;
+    private String tipoContato;
+    List<String> categorias;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,6 +44,20 @@ public class DetalheActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        contactGroupTypeSpinner = (Spinner) findViewById(R.id.contactGroupSpinner);
+
+        categorias = new ArrayList<String>();
+        categorias.add("Amigo");
+        categorias.add("Familia");
+        categorias.add("Trabalho");
+        categorias.add("Outro");
+
+        ArrayAdapter<String> dataAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item,categorias);
+        dataAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+        contactGroupTypeSpinner.setAdapter(dataAdapter);
+
+        contactGroupTypeSpinner.setOnItemSelectedListener(this);
 
         databaseReference = FirebaseDatabase.getInstance().getReference();
 
@@ -59,6 +84,9 @@ public class DetalheActivity extends AppCompatActivity {
                         EditText emailText = (EditText) findViewById(R.id.editTextEmail);
                         emailText.setText(c.getEmail());
 
+                        Spinner spinner = (Spinner) findViewById(R.id.contactGroupSpinner);
+                        int a = categorias.indexOf(c.getTipoContato());
+                        spinner.setSelection(a);
                     }
                 }
 
@@ -120,6 +148,8 @@ public class DetalheActivity extends AppCompatActivity {
             c.setNome(name);
             c.setFone(fone);
             c.setEmail(email);
+            c.setTipoContato(tipoContato);
+
             databaseReference.push().setValue(c);
 
         }
@@ -128,15 +158,24 @@ public class DetalheActivity extends AppCompatActivity {
             c.setNome(name);
             c.setFone(fone);
             c.setEmail(email);
+            c.setTipoContato(tipoContato);
 
             databaseReference.child(FirebaseID).setValue(c);
-
-
         }
 
         Intent resultIntent = new Intent();
         setResult(RESULT_OK,resultIntent);
         finish();
+    }
+
+    @Override
+    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        tipoContato = parent.getItemAtPosition(position).toString();
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> parent) {
+
     }
 }
 
